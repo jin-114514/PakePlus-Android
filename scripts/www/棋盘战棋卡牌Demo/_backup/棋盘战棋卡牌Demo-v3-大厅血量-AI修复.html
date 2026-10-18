@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>棋盘战棋卡牌 Demo</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230a0e1a'/%3E%3Crect x='8' y='8' width='12' height='12' fill='%2339c5ff'/%3E%3Crect x='44' y='8' width='12' height='12' fill='%2339c5ff'/%3E%3Crect x='8' y='44' width='12' height='12' fill='%2339c5ff'/%3E%3Crect x='44' y='44' width='12' height='12' fill='%2339c5ff'/%3E%3Crect x='26' y='20' width='12' height='24' fill='%23f0c040'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0a0e1a; --panel:#121a2e; --panel2:#0e1526; --line:#2a3a5c;
+    --accent:#39c5ff; --gold:#f0c040; --blue:#4a9eff; --red:#ff5a5a;
+    --text:#dbe4ff; --dim:#8fa0c8; --green:#3ddc84;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  button{font-family:inherit;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:"Microsoft YaHei","PingFang SC","Noto Sans SC",monospace;
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  /* ===== 顶栏 ===== */
+  header{
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
+    padding:8px 14px; background:var(--panel); border-bottom:2px solid var(--line);
+    font-size:13px;
+  }
+  .logo{font-weight:800; letter-spacing:2px; color:var(--gold); font-size:16px;}
+  .logo small{color:var(--dim); font-weight:400; margin-left:8px; letter-spacing:1px;}
+  .stam-box{display:flex; gap:10px; align-items:center;}
+  .stam{display:flex; align-items:center; gap:6px; padding:4px 10px; border:1px solid var(--line); border-radius:4px; background:var(--panel2);}
+  .stam .tag{color:var(--dim); font-size:12px;}
+  .stam b{font-size:16px;}
+  .stam.p1 b{color:var(--blue);} .stam.p2 b{color:var(--red);}
+  .turn-badge{padding:4px 12px; border-radius:4px; font-weight:700; border:1px solid var(--line);}
+  .turn-badge.p1{background:rgba(74,158,255,.15); color:var(--blue); border-color:var(--blue);}
+  .turn-badge.p2{background:rgba(255,90,90,.15); color:var(--red); border-color:var(--red);}
+  .mode-chip{padding:4px 10px; border-radius:4px; border:1px dashed var(--line); color:var(--gold); font-size:12px; background:var(--panel2);}
+  /* ===== 大厅 ===== */
+  #lobby{
+    position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
+    background:
+      radial-gradient(ellipse at 50% 28%, rgba(74,158,255,.14), transparent 62%),
+      radial-gradient(ellipse at 78% 82%, rgba(240,192,64,.08), transparent 55%),
+      linear-gradient(180deg,#0b1020 0%, #0e1530 58%, #101a3c 100%);
+  }
+  #lobby.hide{display:none;}
+  .lobby-inner{text-align:center; padding:44px 30px; max-width:620px; width:94%;}
+  .lobby-logo{font-size:38px; font-weight:900; letter-spacing:3px; color:var(--gold); text-shadow:0 0 22px rgba(240,192,64,.35);}
+  .lobby-logo small{display:block; font-size:12px; font-weight:400; letter-spacing:4px; color:var(--dim); margin-top:8px;}
+  .lobby-sub{color:var(--dim); font-size:13px; margin:20px 0 40px;}
+  .mode-row{display:flex; gap:14px; justify-content:center; margin-bottom:14px;}
+  .mode-btn{
+    padding:11px 22px; font-size:14px; font-weight:700; cursor:pointer; border-radius:6px;
+    background:var(--panel); color:var(--dim); border:2px solid var(--line);
+    transition:all .15s;
+  }
+  .mode-btn:hover{border-color:var(--accent); color:var(--text);}
+  .mode-btn.sel{background:rgba(57,197,255,.14); color:var(--accent); border-color:var(--accent); box-shadow:0 0 12px rgba(57,197,255,.2);}
+  .mode-tip{color:var(--dim); font-size:12px; min-height:20px; margin-bottom:34px;}
+  .start-btn{
+    display:inline-block; padding:15px 72px; font-size:20px; font-weight:900; letter-spacing:6px; cursor:pointer;
+    color:#1a1508; background:linear-gradient(180deg,#ffd75e,#f0a020); border:none; border-radius:8px;
+    box-shadow:0 6px 0 #a86a10, 0 10px 24px rgba(240,160,32,.35); transition:all .1s;
+  }
+  .start-btn:hover{transform:translateY(-1px); box-shadow:0 7px 0 #a86a10, 0 14px 28px rgba(240,160,32,.45);}
+  .start-btn:active{transform:translateY(4px); box-shadow:0 2px 0 #a86a10;}
+  .lobby-foot{margin-top:30px; color:var(--dim); font-size:11px; letter-spacing:1px;}
+  /* ===== 主区 ===== */
+  main{flex:1; display:flex; gap:10px; padding:10px; min-height:0;}
+  .board-wrap{flex:1; display:flex; align-items:center; justify-content:center; min-width:0;}
+  canvas#board{
+    background:#10182c; border:3px solid var(--line); border-radius:4px;
+    max-width:100%; max-height:100%; aspect-ratio:1/1; width:auto; height:auto;
+    image-rendering:pixelated; cursor:pointer; touch-action:manipulation;
+  }
+  .side-panel{
+    width:300px; min-width:260px; display:flex; flex-direction:column; gap:8px; overflow-y:auto;
+    background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:10px;
+    font-size:13px;
+  }
+  .panel-title{color:var(--accent); font-weight:700; letter-spacing:1px; font-size:13px; border-bottom:1px solid var(--line); padding-bottom:4px;}
+  .prompt{min-height:44px; padding:8px; background:var(--panel2); border:1px solid var(--line); border-radius:4px; line-height:1.5; color:var(--text);}
+  .prompt .hint{color:var(--gold);}
+  .piece-info{background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:8px; line-height:1.7;}
+  .piece-info .nm{font-weight:700; font-size:14px;}
+  .hp-bar,.shield-row{display:flex; align-items:center; gap:6px; margin-top:4px;}
+  .hp-bar .bar{flex:1; height:10px; background:#2a1a1a; border:1px solid #4a2a2a; border-radius:2px; overflow:hidden;}
+  .hp-bar .fill{height:100%; background:linear-gradient(90deg,#e0534a,#ff6a5e); transition:width .25s;}
+  .shield-ico{width:16px; height:16px; display:inline-block; background:#1c2a44; border:1px solid #3a5278; border-radius:2px; position:relative;}
+  .shield-ico.full{background:var(--gold); border-color:#c89a2a;}
+  .shield-ico.crack{background:#9a7a2a; border-color:#6a5a1a;}
+  .shield-ico.empty{opacity:.25;}
+  .btn{
+    display:inline-block; padding:8px 14px; border:1px solid var(--line); border-radius:4px; background:var(--panel2);
+    color:var(--text); cursor:pointer; font-size:13px; text-align:center; user-select:none;
+  }
+  .btn:hover{border-color:var(--accent); color:var(--accent);}
+  .btn:disabled{opacity:.4; cursor:not-allowed;}
+  .btn.primary{background:var(--accent); color:#062033; font-weight:700; border-color:var(--accent);}
+  .btn.primary:hover{filter:brightness(1.1);}
+  .btn.gold{background:var(--gold); color:#3a2a05; font-weight:700; border-color:var(--gold);}
+  .btn.danger{background:#5a1a1a; border-color:#8a2a2a; color:#ffb0b0;}
+  .btn-row{display:flex; gap:8px; flex-wrap:wrap;}
+  .log{flex:1; min-height:80px; background:var(--panel2); border:1px solid var(--line); border-radius:4px; padding:6px; overflow-y:auto; font-size:12px; line-height:1.6;}
+  .log .lg-b{color:var(--blue);} .log .lg-r{color:var(--red);} .log .lg-g{color:var(--gold);} .log .lg-dim{color:var(--dim);}
+  /* ===== 手牌区 ===== */
+  .hand-zone{background:var(--panel); border-top:2px solid var(--line); padding:8px 12px;}
+  .hand-head{display:flex; align-items:center; gap:10px; margin-bottom:6px; font-size:13px;}
+  .hand-head .t{color:var(--accent); font-weight:700;}
+  .hand{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; min-height:130px;}
+  .card{
+    position:relative; flex:0 0 auto; width:76px; cursor:pointer; border-radius:4px; overflow:hidden;
+    border:2px solid var(--line); background:var(--panel2); transition:transform .12s, border-color .12s;
+  }
+  .card:hover{transform:translateY(-4px);}
+  .card.sel{border-color:var(--gold); box-shadow:0 0 8px rgba(240,192,64,.5);}
+  .card img{width:100%; display:block; aspect-ratio:3/4; object-fit:cover; image-rendering:pixelated;}
+  .card .nm{font-size:11px; text-align:center; padding:2px 0; color:var(--text);}
+  .card .cost{
+    position:absolute; top:2px; left:2px; background:rgba(10,14,26,.85); color:var(--gold);
+    border:1px solid var(--gold); border-radius:3px; font-size:11px; font-weight:700; padding:1px 4px;
+  }
+  .card .ptype{
+    position:absolute; top:2px; right:2px; background:rgba(10,14,26,.85); color:var(--accent);
+    border:1px solid var(--accent); border-radius:3px; font-size:10px; padding:1px 3px;
+  }
+  .card.dim{opacity:.45;}
+  .empty-hand{color:var(--dim); font-size:13px; padding:20px 4px;}
+  /* ===== 弹窗 ===== */
+  .modal-mask{position:fixed; inset:0; background:rgba(5,8,16,.7); display:none; align-items:center; justify-content:center; z-index:50;}
+  .modal-mask.show{display:flex;}
+  .modal{
+    background:var(--panel); border:2px solid var(--line); border-radius:8px; padding:18px; max-width:420px; width:92%;
+    box-shadow:0 8px 30px rgba(0,0,0,.5);
+  }
+  .modal h3{color:var(--gold); margin-bottom:10px; font-size:15px;}
+  .modal .desc{color:var(--text); line-height:1.7; font-size:13px; margin-bottom:14px;}
+  .modal .rules{color:var(--dim); font-size:12px; line-height:1.8; max-height:220px; overflow-y:auto; margin-bottom:12px;}
+  .modal .rules b{color:var(--gold);}
+  .modal .btn-row{justify-content:flex-end;}
+  .modal .card-prev{width:120px; margin:0 auto 10px; border:2px solid var(--gold); border-radius:6px; overflow:hidden;}
+  .modal .card-prev img{width:100%; display:block; image-rendering:pixelated;}
+  @media (max-width:900px){
+    body{overflow:auto;}
+    main{flex-direction:column;}
+    .side-panel{width:100%; max-height:40vh;}
+    .hand{min-height:110px;}
+    .card{width:64px;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">像素战棋·卡牌对决<small>本地测试版</small></div>
+  <div class="mode-chip" id="modeChip">匹配 · 本地双人</div>
+  <div class="stam-box">
+    <div class="stam p1"><span class="tag">蓝方体力</span><b id="stam1">8</b></div>
+    <div class="stam p2"><span class="tag">红方体力</span><b id="stam2">8</b></div>
+  </div>
+  <div class="turn-badge p1" id="turnBadge">蓝方回合</div>
+</header>
+
+<main>
+  <div class="board-wrap">
+    <canvas id="board" width="800" height="800"></canvas>
+  </div>
+  <aside class="side-panel">
+    <div class="panel-title">行动提示</div>
+    <div class="prompt" id="prompt">点击你的棋子开始行动</div>
+    <div class="panel-title">选中棋子</div>
+    <div class="piece-info" id="pieceInfo">（未选中）</div>
+    <div class="panel-title">操作</div>
+    <div class="btn-row">
+      <button class="btn gold" id="btnEndTurn" disabled>结束回合</button>
+      <button class="btn" id="btnRules">规则</button>
+      <button class="btn" id="btnLobby">大厅</button>
+      <button class="btn danger" id="btnRestart">重开</button>
+    </div>
+    <div class="panel-title">战斗日志</div>
+    <div class="log" id="log"></div>
+  </aside>
+</main>
+
+<div id="cardTpl" hidden>
+  <img data-card="jibu" src="assets/px_jibu.jpg" alt="疾步">
+  <img data-card="shanbi" src="assets/px_shanbi.jpg" alt="闪避">
+  <img data-card="huifu" src="assets/px_huifu.jpg" alt="恢复">
+  <img data-card="zhiliao" src="assets/px_zhiliao.jpg" alt="治疗">
+  <img data-card="hujia" src="assets/px_hujia.jpg" alt="护甲">
+  <img data-card="linjia" src="assets/px_linjia.jpg" alt="麟甲">
+  <img data-card="huikan" src="assets/px_huikan.jpg" alt="挥砍">
+  <img data-card="hengsao" src="assets/px_hengsao.jpg" alt="横扫">
+  <img data-card="jitui" src="assets/px_jitui.jpg" alt="击退">
+  <img data-card="chuanc" src="assets/px_chuanc.jpg" alt="穿刺">
+</div>
+
+<section class="hand-zone">
+  <div class="hand-head"><span class="t" id="handOwner">蓝方手牌</span><span id="handCount"></span><span id="handHint" class="lg-dim"></span></div>
+  <div class="hand" id="hand"></div>
+</section>
+
+<div class="modal-mask" id="modalMask">
+  <div class="modal" id="modal"></div>
+</div>
+
+<div id="lobby">
+  <div class="lobby-inner">
+    <div class="lobby-logo">像素战棋 · 卡牌对决<small>BOARD × CARD DUEL</small></div>
+    <div class="lobby-sub">20×20 棋盘 · 3v3 回合制战棋 · 10 张技能卡</div>
+    <div class="mode-row">
+      <button class="mode-btn sel" id="modePvp">匹配 · 本地双人</button>
+      <button class="mode-btn" id="modeAi">人机 · 对战电脑</button>
+    </div>
+    <div class="mode-tip" id="modeTip">匹配：两位玩家轮流在同一设备上操作（在线匹配开发中，测试版以本地双人代替）</div>
+    <button class="start-btn" id="btnStart">开始游戏</button>
+    <div class="lobby-foot">单机测试版 · 玩法与数值会持续调整</div>
+  </div>
+</div>
+
+<!-- ===== JS PART 1: 配置与状态 ===== -->
+<script>
+"use strict";
+/* =====================================================================
+ * 规则集配置（ruleset_id 统一来源，Demo/日志/界面共用）
+ * ===================================================================== */
+const RULESET_ID = 'dxzq-pixel-demo-20261017-v1';
+const CFG = {
+  RULESET_ID,
+  BOARD_SIZE: 20,          // 20×20 棋盘
+  PIECES_PER_SIDE: 3,      // 每方 3 个兵
+  PIECE_HP: 10,            // 兵生命
+  SHIELD_SLOTS: 3,         // 护盾槽 3 个
+  STAMINA_TOTAL: 16,       // 体力总池
+  STAMINA_EACH: 8,         // 初始每人
+  START_HAND: 5,           // 开局手牌
+  HAND_SAFE: 5,            // 兜底目标手牌数
+  SAFETY_TRIGGER: 7,       // 双方合计 <7 触发兜底
+  MOVE_RANGE: 1,           // 移动范围 1 格
+  MOVE_DIRS: [[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]], // 8方向
+  ORTH: [[0,-1],[-1,0],[1,0],[0,1]], // 前后左右
+};
+const CARD_DEFS = {
+  jibu:   {id:'jibu',  name:'疾步', cost:1, type:'主动', target:'own',       desc:'目标棋子可以再移动 2 格。'},
+  shanbi: {id:'shanbi',name:'闪避', cost:1, type:'被动', target:'none',      desc:'被动：受伤害或控制时，可触发躲到自身 3×3 范围内任意空位，抵消该次效果。'},
+  huifu:  {id:'huifu', name:'恢复', cost:1, type:'主动', target:'own',       desc:'目标棋子恢复 1 点生命（满血不可用）。'},
+  zhiliao:{id:'zhiliao',name:'治疗',cost:2, type:'主动', target:'none',      desc:'己方所有棋子各恢复 1 点生命（全满不可用）。'},
+  hujia:  {id:'hujia', name:'护甲', cost:1, type:'主动', target:'own',       desc:'目标棋子获得 1 个护盾（全甲，上限 3 槽）。'},
+  linjia: {id:'linjia',name:'麟甲', cost:2, type:'主动', target:'none',      desc:'直到己方下个回合开始，我方棋子免疫伤害，敌方攻击显示「防御成功」。'},
+  huikan: {id:'huikan',name:'挥砍', cost:1, type:'主动', target:'ownEnemyAdj',desc:'目标棋子前后左右有敌方棋子时，选择其中 1 个造成 1 伤害（可拆可拆除障碍）。'},
+  hengsao:{id:'hengsao',name:'横扫',cost:1, type:'主动', target:'direction', desc:'选目标棋子一个方向：该方向 1 格 + 垂直两侧 1 格（共 3 格）内的敌方棋子各受 1 伤害（可拆除障碍）。'},
+  jitui:  {id:'jitui', name:'击退', cost:1, type:'主动', target:'ownEnemyAdj',desc:'目标棋子前后左右 1 格敌方：受 1 伤害并后退 1 格（有墙或占位则不退）。'},
+  chuanc: {id:'chuanc',name:'穿刺',cost:1, type:'主动', target:'ownEnemyAdj',desc:'目标棋子前后左右 1 格敌方：受 1 伤害，自身朝该方向前进 3 格（途中遇墙/障碍则取消前进）。'},
+};
+const CARD_ORDER = ['jibu','shanbi','huifu','zhiliao','hujia','linjia','huikan','hengsao','jitui','chuanc'];
+
+/* ===== 模式与大厅 ===== */
+let GAME_MODE = 'pvp';   // pvp=匹配/本地双人  ai=人机
+let aiBusy = false;      // 人机回合进行中（屏蔽玩家输入）
+let aiResume = null;     // 人机攻击结算完成后的续跑回调
+let aiGen = 0;           // 对局代数：重开/回大厅后作废排队中的 AI 动作
+let aiAtkBusy = false;   // 人机攻击结算进行中（闪避弹窗等异步链）
+let aiAtkCb = null;      // 攻击完全结算（含闪避链）后的回调
+
+/* ===== 状态 ===== */
+let G = null; // 游戏状态
+
+function newGame(){
+  aiGen++; aiBusy=false; aiResume=null; aiAtkBusy=false; aiAtkCb=null;
+  G = {
+    turn: 1,                    // 1 蓝 / 2 红
+    stamina: {1:CFG.STAMINA_EACH, 2:CFG.STAMINA_EACH},
+    hands: {1:[], 2:[]},
+    lastConsumed: {1:0, 2:0},   // 上回合消耗卡数（含打出+弃牌）
+    pieces: [],                 // {id,side,x,y,hp,shields[],moved,bonusMoves,buffs}
+    board: [],                  // 20×20: null | {type:'wall'} | {type:'debris'}
+    phase: 'select',            // select | move | target
+    targetCtx: null,            // 目标选择上下文
+    selected: null,             // 选中的兵 id
+    pending: null,              // 待执行的卡（打出前）
+    over: null,                 // 胜利方
+    log: [],
+    moveCount: {1:0,2:0},
+  };
+  genBoard();
+  placePieces();
+  G.hands[1] = drawCards(1, CFG.START_HAND);
+  G.hands[2] = drawCards(2, CFG.START_HAND);
+  logMsg(`【新对局】${RULESET_ID} 开局各抽 5 张`, 'lg-g');
+  G.phase = 'select';
+  renderAll();
+}
+
+function genBoard(){
+  const N = CFG.BOARD_SIZE;
+  G.board = [];
+  for(let y=0;y<N;y++){
+    const row = [];
+    for(let x=0;x<N;x++) row.push(null);
+    G.board.push(row);
+  }
+  // 随机障碍：约 6% 墙体 + 10% 可拆除障碍（避开出生区）
+  for(let y=0;y<N;y++){
+    for(let x=0;x<N;x++){
+      if(x<2||x>=N-2||y<2||y>=N-2) continue; // 四周两圈留空作出生区
+      const r = Math.random();
+      if(r<0.06) G.board[y][x] = {type:'wall'};
+      else if(r<0.16) G.board[y][x] = {type:'debris'};
+    }
+  }
+}
+
+function placePieces(){
+  G.pieces = [];
+  const N = CFG.BOARD_SIZE;
+  // 蓝方在左上，红方在右下
+  const spots = {1:[[1,1],[1,2],[2,1]], 2:[[N-2,N-2],[N-2,N-3],[N-3,N-2]]};
+  [1,2].forEach(side=>{
+    spots[side].forEach((p,idx)=>{
+      G.pieces.push({
+        id: `p${side}_${idx}`, side, x:p[0], y:p[1],
+        hp: CFG.PIECE_HP,
+        shields: Array(CFG.SHIELD_SLOTS).fill(0), // 0空 1碎甲 2全甲
+        moved: false, bonusMoves: 0, buffLinjia: false, alive: true,
+        name: side===1 ? `蓝兵${idx+1}` : `红兵${idx+1}`,
+      });
+    });
+  });
+}
+
+function drawCards(side, n){
+  const pool = CARD_ORDER.slice();
+  for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+  const got = [];
+  for(let i=0;i<n;i++) got.push(pool[i % pool.length]);
+  G.hands[side] = G.hands[side].concat(got);
+  return got;
+}
+
+function logMsg(msg, cls){
+  G.log.unshift(`<span class="${cls||''}">${msg}</span>`);
+  if(G.log.length>80) G.log.length=80;
+}
+</script>
+<!-- ===== JS PART 2: 渲染 ===== -->
+<script>
+/* ===== 棋盘渲染 ===== */
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+const CELL = 40; // 800/20
+
+function cellX(x){ return x*CELL; }
+function cellY(y){ return y*CELL; }
+
+function drawBoard(){
+  const N = CFG.BOARD_SIZE;
+  ctx.clearRect(0,0,800,800);
+  // 地板
+  for(let y=0;y<N;y++){
+    for(let x=0;x<N;x++){
+      const c = (x+y)%2===0 ? '#1d2745' : '#222d50';
+      ctx.fillStyle = c;
+      ctx.fillRect(cellX(x), cellY(y), CELL, CELL);
+      // 轻微像素点
+      ctx.fillStyle = (x+y)%2===0 ? '#232f54' : '#1b2442';
+      ctx.fillRect(cellX(x)+8, cellY(y)+8, 4, 4);
+    }
+  }
+  // 障碍
+  for(let y=0;y<N;y++){
+    for(let x=0;x<N;x++){
+      const o = G.board[y][x];
+      if(!o) continue;
+      if(o.type==='wall') drawWall(x,y);
+      else if(o.type==='debris') drawDebris(x,y);
+    }
+  }
+  // 可移动高亮
+  if(G.phase==='move' && G.moveHighlights){
+    G.moveHighlights.forEach(([mx,my])=>{
+      ctx.fillStyle='rgba(57,197,255,.22)';
+      ctx.fillRect(cellX(mx)+2, cellY(my)+2, CELL-4, CELL-4);
+      ctx.strokeStyle='rgba(57,197,255,.7)'; ctx.lineWidth=1;
+      ctx.strokeRect(cellX(mx)+3, cellY(my)+3, CELL-6, CELL-6);
+    });
+  }
+  // 目标高亮
+  if(G.phase==='target' && G.targetHighlights){
+    G.targetHighlights.forEach(t=>{
+      ctx.fillStyle = t.kind==='bad' ? 'rgba(255,90,90,.25)' : 'rgba(240,192,64,.25)';
+      ctx.fillRect(cellX(t.x)+2, cellY(t.y)+2, CELL-4, CELL-4);
+      ctx.strokeStyle = t.kind==='bad' ? 'rgba(255,90,90,.8)' : 'rgba(240,192,64,.8)';
+      ctx.lineWidth=1;
+      ctx.strokeRect(cellX(t.x)+3, cellY(t.y)+3, CELL-6, CELL-6);
+    });
+  }
+  // 棋子
+  G.pieces.filter(p=>p.alive).forEach(p=>drawPiece(p));
+  // 选中框
+  if(G.selected){
+    const p = getPiece(G.selected);
+    if(p){
+      ctx.strokeStyle='#ffffff'; ctx.lineWidth=2;
+      ctx.strokeRect(cellX(p.x)+2, cellY(p.y)+2, CELL-4, CELL-4);
+    }
+  }
+}
+
+function drawWall(x,y){
+  const px=cellX(x), py=cellY(y);
+  ctx.fillStyle='#6b7588'; ctx.fillRect(px+2,py+2,CELL-4,CELL-4);
+  ctx.fillStyle='#8a94a8'; ctx.fillRect(px+4,py+4,CELL-8,CELL-8);
+  ctx.fillStyle='#5a6375'; ctx.fillRect(px+8,py+8,CELL-16,CELL-16);
+  ctx.fillStyle='#9aa4b8'; ctx.fillRect(px+6,py+6,8,6);
+  ctx.fillStyle='#4a5263'; ctx.fillRect(px+CELL-12,py+CELL-12,8,6);
+}
+
+function drawDebris(x,y){
+  const px=cellX(x), py=cellY(y);
+  // 木箱
+  ctx.fillStyle='#7a4a1e'; ctx.fillRect(px+5,py+8,CELL-10,CELL-14);
+  ctx.fillStyle='#a06a2a'; ctx.fillRect(px+7,py+10,CELL-14,CELL-18);
+  ctx.strokeStyle='#5a3414'; ctx.lineWidth=2;
+  ctx.strokeRect(px+7,py+10,CELL-14,CELL-18);
+  ctx.beginPath(); ctx.moveTo(px+7,py+10); ctx.lineTo(px+CELL-7,py+CELL-8);
+  ctx.moveTo(px+CELL-7,py+10); ctx.lineTo(px+7,py+CELL-8); ctx.stroke();
+}
+
+function drawPiece(p){
+  const px=cellX(p.x), py=cellY(p.y);
+  const cx=px+CELL/2, cy=py+CELL/2;
+  const col = p.side===1 ? '#4a9eff' : '#ff5a5a';
+  const colD = p.side===1 ? '#2a5a9e' : '#9e2a2a';
+  // 底座
+  ctx.fillStyle = p.side===1 ? 'rgba(74,158,255,.35)' : 'rgba(255,90,90,.35)';
+  ctx.fillRect(px+6, py+CELL-8, CELL-12, 5);
+  // 身体（像素小人）
+  ctx.fillStyle = colD;
+  ctx.fillRect(cx-7, cy-2, 14, 12);
+  ctx.fillStyle = col;
+  ctx.fillRect(cx-6, cy-1, 12, 10);
+  // 头
+  ctx.fillStyle = '#f0c8a0';
+  ctx.fillRect(cx-4, cy-12, 8, 9);
+  // 头盔 + 红缨
+  ctx.fillStyle = col;
+  ctx.fillRect(cx-5, cy-15, 10, 5);
+  ctx.fillStyle = '#e0534a';
+  ctx.fillRect(cx-5, cy-16, 3, 3);
+  // 名称标签
+  ctx.font = 'bold 11px "Microsoft YaHei",monospace';
+  ctx.textAlign='center';
+  ctx.fillStyle='rgba(10,14,26,.8)';
+  const tw = ctx.measureText(p.name).width;
+  ctx.fillRect(px+CELL/2-tw/2-3, py-22, tw+6, 15);
+  ctx.fillStyle = p.side===1 ? '#7cc0ff' : '#ff9a9a';
+  ctx.fillText(p.name, px+CELL/2, py-11);
+  // 生命值：血条 + 数字（对局中醒目显示）
+  const ratio = Math.max(0, p.hp / CFG.PIECE_HP);
+  const barW = CELL-18;
+  ctx.fillStyle='rgba(0,0,0,.62)';
+  ctx.fillRect(px+9, py+13, barW, 5);
+  ctx.fillStyle = ratio>0.6 ? '#6fdc6f' : ratio>0.3 ? '#f0c040' : '#ff5a5a';
+  ctx.fillRect(px+9, py+13, barW*ratio, 5);
+  ctx.strokeStyle='rgba(255,255,255,.28)';
+  ctx.strokeRect(px+9, py+13, barW, 5);
+  ctx.fillStyle='#ffffff';
+  ctx.font='bold 10px monospace'; ctx.textAlign='center';
+  ctx.fillText(p.hp, px+CELL/2, py+26);
+  // 护盾槽（金=全甲 橙=碎甲 暗=空）
+  for(let i=0;i<CFG.SHIELD_SLOTS;i++){
+    const s = p.shields[i];
+    const sx = px+7+i*9, sy = py+CELL-6;
+    ctx.fillStyle = s===2 ? '#f0c040' : s===1 ? '#ff9a3c' : 'rgba(255,255,255,.13)';
+    ctx.fillRect(sx, sy, 7, 5);
+    ctx.strokeStyle='rgba(0,0,0,.45)'; ctx.strokeRect(sx, sy, 7, 5);
+  }
+  // 状态标记：麟甲（显示在名称右侧）
+  ctx.textAlign='left';
+  if(p.buffLinjia){
+    ctx.fillStyle='rgba(240,192,64,.95)';
+    ctx.font='bold 10px monospace';
+    ctx.fillText('甲', px+CELL/2+tw/2+4, py-11);
+    ctx.textAlign='left';
+  }
+}
+
+function getPiece(id){ return G.pieces.find(p=>p.id===id); }
+function pieceAt(x,y){ return G.pieces.find(p=>p.alive && p.x===x && p.y===y); }
+function inBoard(x,y){ return x>=0 && x<CFG.BOARD_SIZE && y>=0 && y<CFG.BOARD_SIZE; }
+function passable(x,y){
+  if(!inBoard(x,y)) return false;
+  const o = G.board[y][x];
+  if(o && o.type==='wall') return false;
+  if(o && o.type==='debris') return false;
+  if(pieceAt(x,y)) return false;
+  return true;
+}
+
+/* ===== 侧栏渲染 ===== */
+function renderAll(){
+  drawBoard();
+  renderSidePanel();
+  renderHand();
+  renderHeader();
+}
+
+function renderHeader(){
+  document.getElementById('stam1').textContent = G.stamina[1];
+  document.getElementById('stam2').textContent = G.stamina[2];
+  const badge = document.getElementById('turnBadge');
+  badge.textContent = G.over ? '对局结束' : (G.turn===1?'蓝方回合':'红方回合');
+  badge.className = 'turn-badge ' + (G.turn===1?'p1':'p2');
+}
+
+function renderSidePanel(){
+  const prompt = document.getElementById('prompt');
+  if(G.over){
+    prompt.innerHTML = `<span class="hint">${G.over===1?'蓝方':'红方'}获胜！</span> 点击「重开」再来一局。`;
+  } else if(G.phase==='select'){
+    prompt.innerHTML = `轮到<span class="hint">${G.turn===1?'蓝方':'红方'}</span>：点击你的棋子移动，或直接出牌 / 弃牌 / 结束回合。`;
+  } else if(G.phase==='move'){
+    prompt.innerHTML = `点击<span class="hint">蓝色高亮格</span>移动（8 方向 1 格）；点击其他处取消。`;
+  } else if(G.phase==='target'){
+    const c = G.targetCtx && G.targetCtx.card ? CARD_DEFS[G.targetCtx.card.id] : null;
+    prompt.innerHTML = c ? `为「<span class="hint">${c.name}</span>」选择目标：${G.targetCtx.tip||''}` : '选择目标…';
+  }
+  // 选中棋子
+  const pi = document.getElementById('pieceInfo');
+  const sel = G.selected ? getPiece(G.selected) : null;
+  if(!sel){ pi.innerHTML = '（未选中）'; }
+  else {
+    const shieldHTML = sel.shields.map((s,i)=>`<span class="shield-ico ${s===2?'full':s===1?'crack':'empty'}" title="槽${i+1}:${s===2?'全甲':s===1?'碎甲':'空'}"></span>`).join('');
+    pi.innerHTML = `<div class="nm" style="color:${sel.side===1?'#7cc0ff':'#ff9a9a'}">${sel.name}（${sel.side===1?'蓝':'红'}方）</div>
+      <div class="hp-bar">HP <div class="bar"><div class="fill" style="width:${sel.hp/CFG.PIECE_HP*100}%"></div></div> ${sel.hp}/${CFG.PIECE_HP}</div>
+      <div class="shield-row">护盾 ${shieldHTML}</div>
+      <div style="margin-top:4px;color:var(--dim);font-size:12px;">已移动：${sel.moved?'是':'否'}${sel.bonusMoves>0?`　额外可移动：${sel.bonusMoves}`:''}${sel.buffLinjia?'　【麟甲护体】':''}</div>`;
+  }
+  document.getElementById('btnEndTurn').disabled = !!G.over || G.phase!=='select' || aiBusy;
+  // 日志
+  document.getElementById('log').innerHTML = G.log.map(l=>`<div>${l}</div>`).join('');
+}
+
+function renderHand(){
+  const owner = G.turn;
+  const hand = G.hands[owner];
+  const el = document.getElementById('hand');
+  const ownerEl = document.getElementById('handOwner');
+  ownerEl.textContent = (owner===1?'蓝方':'红方') + '手牌';
+  ownerEl.style.color = owner===1?'#7cc0ff':'#ff9a9a';
+  document.getElementById('handCount').textContent = `（${hand.length} 张）`;
+  document.getElementById('handHint').textContent = ` 上回合对手消耗 ${G.lastConsumed[owner===1?2:1]} 张，本回合补 ${G.lastConsumed[owner===1?2:1]} 张`;
+  if(hand.length===0){ el.innerHTML = '<div class="empty-hand">空手牌——打出或弃牌后对手回合会补给你资源</div>'; return; }
+  el.innerHTML = '';
+  hand.forEach((cid, idx)=>{
+    const def = CARD_DEFS[cid];
+    const can = canPlayCard(cid, owner);
+    const d = document.createElement('div');
+    d.className = 'card' + (can?'':' dim');
+    d.dataset.idx = idx;
+    const imgTpl = document.querySelector(`#cardTpl img[data-card="${cid}"]`);
+    const img = imgTpl ? imgTpl.cloneNode(true) : document.createElement('img');
+    img.removeAttribute('data-card');
+    d.innerHTML = `<span class="cost" title="体力消耗">${def.cost}</span><span class="ptype">${def.type}</span><div class="nm">${def.name}</div>`;
+    d.insertBefore(img, d.querySelector('.nm'));
+    if(G.pending && G.pending.handIdx===idx) d.classList.add('sel');
+    d.addEventListener('click', ()=>onCardClick(idx));
+    el.appendChild(d);
+  });
+}
+</script>
+<!-- ===== JS PART 3: 交互与结算 ===== -->
+<script>
+/* ===== 画布点击 ===== */
+canvas.addEventListener('click', e=>{
+  if(G.over) return;
+  const rect = canvas.getBoundingClientRect();
+  const gx = (e.clientX-rect.left) / rect.width * 800;
+  const gy = (e.clientY-rect.top) / rect.height * 800;
+  const x = Math.floor(gx/CELL), y = Math.floor(gy/CELL);
+  if(!inBoard(x,y)) return;
+  if(G.phase==='dodge'){
+    if(G.dodgeCells && G.dodgeCells.some(([cx,cy])=>cx===x&&cy===y)){ resolveDodge(x,y); }
+    else {
+      const dc = G.dodgeCtx;
+      if(dc){ showModal(false); applyAttack(dc.piece, dc.amount, dc.opt); if(dc.done) dc.done(); G.dodgeCtx=null; G.targetCtx=null; G.targetHighlights=null; G.phase='select'; renderAll(); }
+    }
+    return;
+  }
+  if(aiBusy) return;
+  if(G.phase==='select') onSelectCell(x,y);
+  else if(G.phase==='move') onMoveCell(x,y);
+  else if(G.phase==='target') onTargetCell(x,y);
+});
+
+function onSelectCell(x,y){
+  const p = pieceAt(x,y);
+  if(p && p.side===G.turn){
+    if(p.moved && p.bonusMoves<=0){
+      logMsg(`${p.name} 本回合已移动过（可用「疾步」增加移动次数）`, 'lg-dim');
+      G.selected = null;
+      renderAll();
+      return;
+    }
+    G.selected = p.id;
+    G.phase = 'move';
+    G.moveHighlights = CFG.MOVE_DIRS
+      .map(([dx,dy])=>[p.x+dx,p.y+dy])
+      .filter(([mx,my])=>passable(mx,my));
+    if(G.moveHighlights.length===0){ G.moveHighlights=null; }
+    renderAll();
+  } else {
+    G.selected = null;
+    renderAll();
+  }
+}
+
+function onMoveCell(x,y){
+  const p = G.selected ? getPiece(G.selected) : null;
+  if(!p) return;
+  const hit = G.moveHighlights && G.moveHighlights.some(([hx,hy])=>hx===x&&hy===y);
+  if(hit){
+    p.x=x; p.y=y;
+    // 每兵每回合仅 1 次普通移动；疾步提供额外移动次数
+    if(p.bonusMoves>0){ p.bonusMoves--; } else { p.moved = true; }
+    logMsg(`${p.name} 移动到 (${x},${y})${p.bonusMoves>0?`（疾步剩余 ${p.bonusMoves} 格）`:''}`, p.side===1?'lg-b':'lg-r');
+    G.moveHighlights = null;
+    G.phase = 'select';
+    G.selected = null;
+    checkAndAutoEnd();
+    renderAll();
+  } else {
+    G.moveHighlights = null;
+    G.phase = 'select';
+    renderAll();
+  }
+}
+
+function checkAndAutoEnd(){
+  // 所有兵都动完且无待办目标时提示（不强制结束）
+}
+
+/* ===== 手牌点击 ===== */
+function onCardClick(idx){
+  if(G.over || G.phase!=='select' || aiBusy) return;
+  const owner = G.turn;
+  const hand = G.hands[owner];
+  if(!hand[idx]) return;
+  const cid = hand[idx];
+  const def = CARD_DEFS[cid];
+  showCardModal(idx);
+}
+
+function showCardModal(idx){
+  const owner = G.turn;
+  const cid = G.hands[owner][idx];
+  const def = CARD_DEFS[cid];
+  const can = canPlayCard(cid, owner);
+  const m = document.getElementById('modal');
+  m.innerHTML = `
+    <div class="card-prev" id="mCardPrev"></div>
+    <h3>${def.name}（${def.type}）</h3>
+    <div class="desc">${def.desc}</div>
+    <div class="desc" style="color:var(--gold);">体力消耗：${def.cost} 点（消耗后转移给对方）${def.type==='被动'?'<br><b>被动卡不可主动打出</b>，在己方棋子受伤害/控制时自动询问触发。':''}</div>
+    <div class="btn-row">
+      <button class="btn" id="mClose">取消</button>
+      <button class="btn" id="mDiscard">弃牌</button>
+      <button class="btn primary" id="mPlay" ${can?'':'disabled'}>出牌</button>
+    </div>`;
+  showModal(true);
+  const mt = document.querySelector(`#cardTpl img[data-card="${cid}"]`);
+  if(mt){ const ci = mt.cloneNode(true); ci.removeAttribute('data-card'); document.getElementById('mCardPrev').appendChild(ci); }
+  document.getElementById('mClose').onclick = ()=>showModal(false);
+  document.getElementById('mDiscard').onclick = ()=>{
+    discardCard(idx); showModal(false);
+  };
+  document.getElementById('mPlay').onclick = ()=>{
+    G.pending = {handIdx:idx, cardId:cid};
+    showModal(false);
+    beginCardPlay(cid);
+  };
+}
+
+function showModal(show){
+  document.getElementById('modalMask').classList.toggle('show', !!show);
+}
+
+function discardCard(idx){
+  const owner = G.turn;
+  const cid = G.hands[owner][idx];
+  G.hands[owner].splice(idx,1);
+  G.lastConsumed[owner]++;
+  logMsg(`弃牌：${CARD_DEFS[cid].name}`, 'lg-dim');
+  renderAll();
+}
+
+/* ===== 卡牌可用性 ===== */
+function canPlayCard(cid, side){
+  const def = CARD_DEFS[cid];
+  if(G.stamina[side] < def.cost) return false;
+  const mine = G.pieces.filter(p=>p.side===side && p.alive);
+  if(mine.length===0) return false;
+  switch(cid){
+    case 'shanbi': return false; // 被动卡不可主动打出
+    case 'huifu': return mine.some(p=>p.hp<CFG.PIECE_HP);
+    case 'zhiliao': return mine.some(p=>p.hp<CFG.PIECE_HP);
+    case 'hujia': return mine.some(p=>p.shields.some(s=>s===0));
+    case 'huikan': return mine.some(p=>orthEnemies(p).length>0 || orthDebris(p).length>0);
+    case 'jitui':
+    case 'chuanc': return mine.some(p=>orthEnemies(p).length>0);
+    case 'hengsao': return mine.length>0;
+    default: return true;
+  }
+}
+
+function orthEnemies(p){ return CFG.ORTH.map(([dx,dy])=>[p.x+dx,p.y+dy]).filter(([x,y])=>{const q=pieceAt(x,y); return q && q.side!==p.side;}); }
+function orthDebris(p){ return CFG.ORTH.map(([dx,dy])=>[p.x+dx,p.y+dy]).filter(([x,y])=>inBoard(x,y) && G.board[y][x] && G.board[y][x].type==='debris'); }
+
+/* ===== 出牌流程 ===== */
+function beginCardPlay(cid){
+  const side = G.turn;
+  const def = CARD_DEFS[cid];
+  if(def.target==='none'){
+    playCardNoTarget(cid);
+    return;
+  }
+  if(def.target==='own'){
+    G.phase='target';
+    G.targetCtx = {card:{id:cid}, tip:'点击己方棋子', filter:p=>p.side===side && p.alive && targetValid(cid,p), step:1};
+    G.targetHighlights = G.pieces.filter(p=>p.side===side && p.alive && targetValid(cid,p)).map(p=>({x:p.x,y:p.y,kind:'good'}));
+    renderAll();
+    return;
+  }
+  if(def.target==='ownEnemyAdj'){
+    G.phase='target';
+    G.targetCtx = {card:{id:cid}, tip:'点击己方棋子（需相邻敌方或可拆障碍）', filter:p=>p.side===side && p.alive && (orthEnemies(p).length>0 || orthDebris(p).length>0), step:1};
+    G.targetHighlights = G.pieces.filter(p=>p.side===side && p.alive && (orthEnemies(p).length>0 || orthDebris(p).length>0)).map(p=>({x:p.x,y:p.y,kind:'good'}));
+    renderAll();
+    return;
+  }
+  if(def.target==='direction'){
+    G.phase='target';
+    G.targetCtx = {card:{id:cid}, tip:'点击己方棋子，再选方向', filter:p=>p.side===side && p.alive, step:1};
+    G.targetHighlights = G.pieces.filter(p=>p.side===side && p.alive).map(p=>({x:p.x,y:p.y,kind:'good'}));
+    renderAll();
+    return;
+  }
+}
+
+function targetValid(cid, p){
+  if(cid==='huifu') return p.hp<CFG.PIECE_HP;
+  if(cid==='hujia') return p.shields.some(s=>s===0);
+  return true;
+}
+
+function onTargetCell(x,y){
+  const tc = G.targetCtx;
+  if(!tc) return;
+  const cid = tc.card.id;
+  const def = CARD_DEFS[cid];
+  const side = G.turn;
+  if(tc.step===1){
+    const p = pieceAt(x,y);
+    if(!p || !tc.filter(p)) return;
+    if(def.target==='own'){
+      finishCardPlay(cid, {piece:p});
+      return;
+    }
+    // ownEnemyAdj / direction → 第二步
+    if(def.target==='ownEnemyAdj'){
+      const enemies = orthEnemies(p).map(([ex,ey])=>({x:ex,y:ey,kind:'bad'}));
+      const debris = orthDebris(p).map(([ex,ey])=>({x:ex,y:ey,kind:'bad'}));
+      tc.step=2; tc.piece=p; tc.filter=null;
+      tc.tip = `选择攻击目标（相邻敌方或可拆障碍）`;
+      G.targetHighlights = enemies.concat(debris);
+      renderAll();
+      return;
+    }
+    if(def.target==='direction'){
+      tc.step=2; tc.piece=p; tc.filter=null;
+      tc.tip = `点击一个方向格（该格 + 垂直两侧 1 格受击）`;
+      G.targetHighlights = CFG.ORTH.map(([dx,dy])=>({x:p.x+dx,y:p.y+dy,kind:'good'})).filter(t=>inBoard(t.x,t.y));
+      renderAll();
+      return;
+    }
+  } else if(tc.step===2){
+    if(def.target==='ownEnemyAdj'){
+      const p = tc.piece;
+      const q = pieceAt(x,y);
+      const deb = inBoard(x,y) ? G.board[y][x] : null;
+      if(!q && !(deb && deb.type==='debris')) return;
+      if(q && q.side===p.side) return;
+      finishCardPlay(cid, {piece:p, enemy:q, cell:[x,y]});
+      return;
+    }
+    if(def.target==='direction'){
+      const p = tc.piece;
+      if(!(Math.abs(x-p.x)+Math.abs(y-p.y)===1)) return;
+      finishCardPlay(cid, {piece:p, dir:[x-p.x, y-p.y]});
+      return;
+    }
+  }
+}
+
+function finishCardPlay(cid, arg){
+  const side = G.turn;
+  const def = CARD_DEFS[cid];
+  const idx = G.pending.handIdx;
+  // 扣体力并转移
+  G.stamina[side] -= def.cost;
+  G.stamina[side===1?2:1] += def.cost;
+  G.hands[side].splice(idx,1);
+  G.lastConsumed[side]++;
+  logMsg(`【${side===1?'蓝':'红'}方】打出「${def.name}」体力-${def.cost}（转移给对方）`, side===1?'lg-b':'lg-r');
+  // 结算
+  resolveCard(cid, arg);
+  G.pending=null; G.phase='select'; G.targetCtx=null; G.targetHighlights=null;
+  checkWin();
+  renderAll();
+}
+
+function playCardNoTarget(cid){
+  const side = G.turn;
+  const def = CARD_DEFS[cid];
+  G.stamina[side] -= def.cost;
+  G.stamina[side===1?2:1] += def.cost;
+  const idx = G.pending.handIdx;
+  G.hands[side].splice(idx,1);
+  G.lastConsumed[side]++;
+  logMsg(`【${side===1?'蓝':'红'}方】打出「${def.name}」体力-${def.cost}（转移给对方）`, side===1?'lg-b':'lg-r');
+  resolveCard(cid, {});
+  G.pending=null; G.phase='select';
+  checkWin();
+  renderAll();
+}
+
+/* ===== 卡牌结算 ===== */
+function resolveCard(cid, arg){
+  const side = G.turn;
+  switch(cid){
+    case 'jibu': {
+      const p = arg.piece;
+      p.bonusMoves += 2;
+      logMsg(`${p.name} 获得额外移动 2 格`, 'lg-dim');
+      G.phase='select';
+      break;
+    }
+    case 'huifu': {
+      const p = arg.piece;
+      p.hp = Math.min(CFG.PIECE_HP, p.hp+1);
+      logMsg(`${p.name} 恢复 1 点生命`, 'lg-g');
+      break;
+    }
+    case 'zhiliao': {
+      G.pieces.filter(p=>p.side===side&&p.alive).forEach(p=>{ p.hp=Math.min(CFG.PIECE_HP,p.hp+1); });
+      logMsg(`【${side===1?'蓝':'红'}方】全体恢复 1 点生命`, 'lg-g');
+      break;
+    }
+    case 'hujia': {
+      const p = arg.piece;
+      const slot = p.shields.findIndex(s=>s===0);
+      p.shields[slot]=2;
+      logMsg(`${p.name} 获得 1 个全甲护盾`, 'lg-g');
+      break;
+    }
+    case 'linjia': {
+      G.pieces.filter(p=>p.side===side&&p.alive).forEach(p=>{ p.buffLinjia=true; });
+      logMsg(`【${side===1?'蓝':'红'}方】麟甲生效：下回合前免疫伤害`, 'lg-g');
+      break;
+    }
+    case 'huikan': {
+      if(arg.enemy){ attackEnemy(arg.enemy, 1, null, resolveAtkDone); }
+      else if(arg.cell){ destroyDebris(arg.cell[0], arg.cell[1]); }
+      break;
+    }
+    case 'hengsao': {
+      const p = arg.piece;
+      const [dx,dy] = arg.dir;
+      // 该方向1格 + 垂直两侧1格（相对棋子）
+      const cells = [[p.x+dx, p.y+dy], [p.x-dy, p.y+dx], [p.x+dy, p.y-dx]];
+      const targets = [];
+      cells.forEach(([x,y])=>{
+        if(!inBoard(x,y)) return;
+        const q = pieceAt(x,y);
+        if(q && q.side!==side) targets.push({kind:'enemy', q});
+        else if(!q && G.board[y][x] && G.board[y][x].type==='debris') targets.push({kind:'debris', x, y});
+      });
+      runAttackQueue(targets, resolveAtkDone);
+      break;
+    }
+    case 'jitui': {
+      const p = arg.piece;
+      const q = arg.enemy;
+      const [dx,dy] = [q.x-p.x, q.y-p.y];
+      attackEnemy(q, 1, {push:[dx,dy]}, resolveAtkDone);
+      break;
+    }
+    case 'chuanc': {
+      const p = arg.piece;
+      const q = arg.enemy;
+      const [dx,dy] = [q.x-p.x, q.y-p.y];
+      attackEnemy(q, 1, {pierce:{piece:p, dir:[dx,dy]}}, resolveAtkDone);
+      break;
+    }
+  }
+}
+
+function passableIgnoreSelf(x,y,self){
+  if(!inBoard(x,y)) return false;
+  const o = G.board[y][x];
+  if(o) return false;
+  const q = pieceAt(x,y);
+  if(q && q.id!==self.id) return false;
+  return true;
+}
+
+function destroyDebris(x,y){
+  if(G.board[y][x] && G.board[y][x].type==='debris'){
+    G.board[y][x]=null;
+    logMsg(`拆除了 (${x},${y}) 的可拆除障碍`, 'lg-dim');
+  }
+}
+
+function tryPush(q, dx, dy){
+  // 全甲可吸收一次控制
+  const fullIdx = q.shields.findIndex(s=>s===2);
+  if(fullIdx>=0){
+    q.shields[fullIdx]=1;
+    logMsg(`${q.name} 全甲吸收控制，变为碎甲`, 'lg-dim');
+    return false;
+  }
+  const nx=q.x+dx, ny=q.y+dy;
+  if(passable(nx,ny)){
+    q.x=nx; q.y=ny;
+    return true;
+  }
+  return false;
+}
+
+/* ===== 攻击结算与闪避被动 ===== */
+function hasCard(side, cid){ return G.hands[side].includes(cid); }
+
+function runAttackQueue(targets, done){
+  const next = (i)=>{
+    if(i>=targets.length){ checkWin(); renderAll(); if(done) done(); return; }
+    const t = targets[i];
+    if(t.kind==='debris'){ destroyDebris(t.x,t.y); next(i+1); }
+    else if(t.q && t.q.alive){ attackEnemy(t.q, 1, null, ()=>next(i+1)); }
+    else next(i+1);
+  };
+  next(0);
+}
+
+// 攻击链完全结算（含闪避弹窗等异步环节）后的统一回调：放行人机下一步
+function resolveAtkDone(){
+  aiAtkBusy = false;
+  if(aiAtkCb){ const cb = aiAtkCb; aiAtkCb = null; cb(); }
+}
+
+function attackEnemy(q, amount, opt, done){
+  opt = opt||{};
+  if(!q.alive){ if(done) done(); return; }
+  const defSide = q.side;
+  const canDodge = hasCard(defSide,'shanbi') && G.stamina[defSide]>=CARD_DEFS.shanbi.cost && G.turn!==defSide;
+  if(canDodge){
+    askDodge(q, amount, opt, done);
+  } else {
+    applyAttack(q, amount, opt);
+    if(done) done();
+  }
+}
+
+function askDodge(q, amount, opt, done){
+  const m = document.getElementById('modal');
+  m.innerHTML = `<h3>触发被动「闪避」</h3>
+    <div class="desc">${q.name}（${q.side===1?'蓝':'红'}方）即将受到攻击！是否使用手牌「闪避」躲开？（消耗 1 体力并转移给对方）</div>
+    <div class="btn-row">
+      <button class="btn primary" id="dYes">使用闪避</button>
+      <button class="btn" id="dNo">承受攻击</button>
+    </div>`;
+  showModal(true);
+  document.getElementById('dYes').onclick = ()=>{
+    showModal(false);
+    G.phase='dodge';
+    G.dodgeCtx = {piece:q, amount, opt, done};
+    const cells = dodgeCells(q);
+    G.dodgeCells = cells;
+    G.targetHighlights = cells.map(([x,y])=>({x,y,kind:'good'}));
+    G.targetCtx = {card:{id:'shanbi'}, tip:'点击 3×3 内空位闪避；点击其他处 = 承受攻击'};
+    renderAll();
+  };
+  document.getElementById('dNo').onclick = ()=>{
+    showModal(false);
+    applyAttack(q, amount, opt);
+    if(done) done();
+  };
+}
+
+function dodgeCells(q){
+  const cells = [];
+  for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+    const x=q.x+dx, y=q.y+dy;
+    if(inBoard(x,y)){
+      const o=G.board[y][x];
+      const occ = pieceAt(x,y);
+      if(!o && (!occ || occ.id===q.id)) cells.push([x,y]);
+    }
+  }
+  return cells;
+}
+
+function resolveDodge(x,y){
+  const dc = G.dodgeCtx;
+  if(!dc) return;
+  const q = dc.piece;
+  const defSide = q.side;
+  const idx = G.hands[defSide].indexOf('shanbi');
+  if(idx<0) return;
+  G.hands[defSide].splice(idx,1);
+  G.stamina[defSide] -= CARD_DEFS.shanbi.cost;
+  G.stamina[defSide===1?2:1] += CARD_DEFS.shanbi.cost;
+  G.lastConsumed[defSide]++;
+  q.x=x; q.y=y;
+  logMsg(`${q.name} 使用「闪避」躲到 (${x},${y})，回避了攻击`, 'lg-g');
+  G.phase='select'; G.dodgeCtx=null; G.dodgeCells=null; G.targetCtx=null; G.targetHighlights=null;
+  checkWin();
+  renderAll();
+  if(dc.done) dc.done();
+}
+
+function applyAttack(q, amount, opt){
+  opt = opt||{};
+  if(opt.push){
+    const [dx,dy]=opt.push;
+    const pushed = tryPush(q, dx, dy);
+    if(pushed) logMsg(`${q.name} 被击退 1 格`, 'lg-r');
+  }
+  damagePiece(q, amount, {kind:'damage'});
+  if(opt.pierce){
+    const {piece, dir} = opt.pierce;
+    const [dx,dy] = dir;
+    // 穿刺前进：路径 3 格（含敌人体位）全部可通才执行；只有墙体/越界/友军/堵死会取消
+    let canMove = true;
+    const displ = [];
+    for(let i=1;i<=3;i++){
+      const nx=piece.x+dx*i, ny=piece.y+dy*i;
+      if(!inBoard(nx,ny) || G.board[ny][nx]){ canMove=false; break; }
+      const occ = pieceAt(nx,ny);
+      if(occ && occ.side===piece.side){ canMove=false; break; }
+      if(occ && occ.side!==piece.side){
+        const tx = nx+dx*3, ty = ny+dy*3;
+        if(!inBoard(tx,ty) || G.board[ty][tx] || pieceAt(tx,ty)){ canMove=false; break; }
+        displ.push([occ, tx, ty]);
+      }
+    }
+    if(canMove){
+      displ.forEach(([o,tx,ty])=>{ o.x=tx; o.y=ty; });
+      piece.x += dx*3; piece.y += dy*3;
+      piece.moved = true;
+      logMsg(`${piece.name} 穿刺前进 3 格${displ.length?`，贯穿击退 ${displ.length} 个敌人`:''}`, 'lg-dim');
+    } else {
+      logMsg(`${piece.name} 前方受阻，穿刺前进取消`, 'lg-dim');
+    }
+  }
+  checkWin();
+  renderAll();
+}
+
+/* ===== 伤害与护盾结算 ===== */
+function damagePiece(p, amount, opt){
+  opt = opt||{};
+  if(!p.alive) return;
+  const side = G.turn;
+  const defSide = p.side;
+  // 麟甲免疫（仅免疫伤害）
+  if(p.buffLinjia && opt.kind==='damage'){
+    logMsg(`${p.name} 麟甲生效：「防御成功」，伤害无效`, 'lg-g');
+    return;
+  }
+  let remaining = amount;
+  // 护盾结算：全甲吸收2（若受1伤变碎甲），碎甲吸收1
+  for(let i=0;i<p.shields.length && remaining>0;i++){
+    const s = p.shields[i];
+    if(s===2){
+      if(remaining>=2){ p.shields[i]=0; remaining-=2; }
+      else { p.shields[i]=1; remaining=0; }
+    } else if(s===1){
+      p.shields[i]=0; remaining-=1;
+    }
+  }
+  if(remaining>0){
+    p.hp -= remaining;
+    logMsg(`${p.name} 受到 ${remaining} 点伤害，HP ${p.hp+remaining}→${p.hp}`, 'lg-r');
+    if(p.hp<=0){
+      p.alive=false; p.hp=0;
+      logMsg(`${p.name} 被击败！`, 'lg-r');
+    }
+  } else {
+    logMsg(`${p.name} 伤害被护盾完全抵挡`, 'lg-dim');
+  }
+  // 闪避被动（结算前触发）——简化：伤害结算后再询问闪避则无效，故在调用前处理
+}
+
+/* ===== 回合流程 ===== */
+document.getElementById('btnEndTurn').addEventListener('click', endTurn);
+function endTurn(){
+  if(G.over) return;
+  if(G.phase!=='select') return;
+  if(aiBusy) return;
+  const old = G.turn;
+  const next = old===1?2:1;
+  // 下一方回合开始：麟甲到期（施放方下回合开始时移除）
+  G.pieces.filter(p=>p.side===next&&p.alive).forEach(p=>{ p.buffLinjia=false; });
+  // 重置移动
+  G.pieces.filter(p=>p.side===next&&p.alive).forEach(p=>{ p.moved=false; p.bonusMoves=0; });
+  G.turn = next;
+  G.phase='select'; G.selected=null; G.moveHighlights=null; G.targetCtx=null;
+  // 抽牌：对手上回合消耗数
+  const drawN = G.lastConsumed[old];
+  G.lastConsumed[old] = 0; // 读取后清零，避免跨回合累积
+  if(drawN>0){
+    drawCards(next, drawN);
+    logMsg(`【${next===1?'蓝':'红'}方】回合开始，因对手消耗 ${drawN} 张，抽 ${drawN} 张`, next===1?'lg-b':'lg-r');
+  }
+  // 兜底规则：双方合计 <7 → 不足5补到5，超过5弃到5
+  const total = G.hands[1].length + G.hands[2].length;
+  if(total < CFG.SAFETY_TRIGGER){
+    [1,2].forEach(s=>{
+      if(G.hands[s].length<CFG.HAND_SAFE){
+        const n = CFG.HAND_SAFE - G.hands[s].length;
+        drawCards(s, n);
+        logMsg(`【${s===1?'蓝':'红'}方】手牌兜底补至 ${CFG.HAND_SAFE} 张`, 'lg-dim');
+      } else if(G.hands[s].length>CFG.HAND_SAFE){
+        const n = G.hands[s].length - CFG.HAND_SAFE;
+        G.hands[s].splice(CFG.HAND_SAFE, n);
+        logMsg(`【${s===1?'蓝':'红'}方】手牌超限弃至 ${CFG.HAND_SAFE} 张`, 'lg-dim');
+      }
+    });
+  }
+  checkWin();
+  renderAll();
+  // 人机模式：红方回合交给 AI
+  if(GAME_MODE==='ai' && G.turn===2 && !G.over) aiTurn();
+}
+
+function checkWin(){
+  const alive1 = G.pieces.filter(p=>p.side===1&&p.alive).length;
+  const alive2 = G.pieces.filter(p=>p.side===2&&p.alive).length;
+  if(alive1===0){ G.over=2; logMsg('【红方获胜】蓝方棋子全灭！','lg-r'); }
+  else if(alive2===0){ G.over=1; logMsg('【蓝方获胜】红方棋子全灭！','lg-b'); }
+}
+
+/* ===== 规则与重开 ===== */
+document.getElementById('btnRules').addEventListener('click', ()=>{
+  const m = document.getElementById('modal');
+  const rules = `
+    <h3>规则速览</h3>
+    <div class="rules">
+      <b>棋盘</b>：20×20。灰墙不可通行；棕色木箱为可拆除障碍（攻击类卡牌可拆除），拆除前也阻挡移动。<br>
+      <b>单位</b>：每方 3 个兵，生命 10，护盾 3 槽。全甲抗 2 伤或 1 次控制（受 1 伤变碎甲），碎甲抗 1 伤。<br>
+      <b>回合</b>：每兵每回合可移动 1 次（周围 8 格 1 步），墙体/障碍/占位不可过；之后可出牌、弃牌或结束回合。<br>
+      <b>体力</b>：总池 16 点，初始各 8。打牌消耗 X 点 → <b>X 点转移给对方</b>。<br>
+      <b>抽牌</b>：开局各 5 张；自己回合补牌数 = 对手上回合消耗（打出+弃牌）数。双方合计手牌 &lt;7 时，不足 5 张补到 5、超过 5 张弃到 5。<br>
+      <b>被动</b>：闪避在己方棋子受伤害/控制时弹出询问，使用后消耗 1 体力（转移给对方），棋子可躲到自身 3×3 范围内任意空位。<br>
+      <b>胜利</b>：对方 3 个兵全部阵亡。<br>
+      <b>数值</b>：攻击类卡 1 体力 = 1 伤害；恢复/治疗回复 1 点。<br>
+      <b>演示说明</b>：大厅可切换「匹配·本地双人 / 人机·对战电脑」；闪避被动触发、麟甲回合判定为本版简化实现，可继续调。
+    </div>
+    <div class="btn-row"><button class="btn primary" id="mClose2">知道了</button></div>`;
+  m.innerHTML = rules;
+  showModal(true);
+  document.getElementById('mClose2').onclick = ()=>showModal(false);
+});
+
+document.getElementById('btnRestart').addEventListener('click', ()=>{
+  if(!confirm('确定重新开始对局吗？')) return;
+  newGame();
+});
+
+/* ===== 大厅与模式 ===== */
+const lobbyEl = document.getElementById('lobby');
+const modePvpEl = document.getElementById('modePvp');
+const modeAiEl = document.getElementById('modeAi');
+const modeTipEl = document.getElementById('modeTip');
+const modeChipEl = document.getElementById('modeChip');
+function setMode(m){
+  GAME_MODE = m;
+  modePvpEl.classList.toggle('sel', m==='pvp');
+  modeAiEl.classList.toggle('sel', m==='ai');
+  modeTipEl.textContent = m==='pvp'
+    ? '匹配：两位玩家轮流在同一设备上操作（在线匹配开发中，测试版以本地双人代替）'
+    : '人机：你执蓝方，红方由电脑 AI 自动行动';
+  modeChipEl.textContent = m==='pvp' ? '匹配 · 本地双人' : '人机 · 对战电脑';
+  renderHeader();
+}
+modePvpEl.addEventListener('click', ()=>setMode('pvp'));
+modeAiEl.addEventListener('click', ()=>setMode('ai'));
+document.getElementById('btnStart').addEventListener('click', ()=>{
+  lobbyEl.classList.add('hide');
+  newGame();
+});
+function showLobby(){
+  aiGen++; aiBusy=false; aiResume=null; aiAtkBusy=false; aiAtkCb=null;
+  lobbyEl.classList.remove('hide');
+}
+document.getElementById('btnLobby').addEventListener('click', ()=>{
+  if(!confirm('返回大厅？当前对局进度将丢失')) return;
+  showLobby();
+});
+
+/* ===== 人机 AI（简化版：近战逼近 + 攻击/防御卡） ===== */
+function aiDist(a,b){ return Math.max(Math.abs(a.x-b.x), Math.abs(a.y-b.y)); }
+function aiNearestEnemy(p){
+  let best=null, bd=1e9;
+  G.pieces.forEach(q=>{ if(q.side!==p.side && q.alive){ const d=aiDist(p,q); if(d<bd){ bd=d; best=q; } } });
+  return best;
+}
+function aiMovePiece(p){
+  const e = aiNearestEnemy(p);
+  if(!e) return;
+  onSelectCell(p.x, p.y);
+  const hl = G.moveHighlights||[];
+  if(!hl.length){
+    // 无路可走：恢复选择阶段，避免卡住本回合
+    G.phase='select'; G.selected=null; renderAll();
+    return;
+  }
+  let bestCell=null, bestD=aiDist(p,e);
+  hl.forEach(([x,y])=>{ const d=aiDist({x,y},e); if(d<bestD){ bestD=d; bestCell=[x,y]; } });
+  if(bestCell) onMoveCell(bestCell[0], bestCell[1]);
+}
+// 攻击牌：只从「该打就打」的牌里选一张；结算完成信号走 aiAtkCb（含闪避弹窗链）
+function aiPlayAttack(){
+  const side=2;
+  const mine=G.pieces.filter(p=>p.side===side&&p.alive);
+  if(!mine.length) return;
+  const atkPriority=['jitui','chuanc','huikan','hengsao'];
+  for(const cid of atkPriority){
+    if(G.stamina[side] < CARD_DEFS[cid].cost) continue;
+    const idx = G.hands[side].indexOf(cid);
+    if(idx<0) continue;
+    // 目标：选离敌方最近的兵（横扫无需贴脸，其他需要正交相邻/可拆障碍）
+    let target=null, td=1e9;
+    mine.forEach(p=>{
+      const ok = cid==='hengsao' ? true : (orthEnemies(p).length>0 || (cid==='huikan' && orthDebris(p).length>0));
+      if(!ok) return;
+      const e = aiNearestEnemy(p);
+      if(!e) return;
+      const d = aiDist(p,e);
+      if(d<td){ td=d; target=p; }
+    });
+    if(!target) continue;
+    if(cid==='hengsao'){
+      // 方向：朝最近的敌方向；若越界则改用任一可行正交方向
+      const e = aiNearestEnemy(target);
+      let dx=0, dy=0;
+      if(e){
+        if(Math.abs(e.x-target.x) >= Math.abs(e.y-target.y)){ dx = Math.sign(e.x-target.x); }
+        else { dy = Math.sign(e.y-target.y); }
+      }
+      const cand = [];
+      if((dx||dy) && inBoard(target.x+dx, target.y+dy)) cand.push([dx,dy]);
+      for(const [cx,cy] of CFG.ORTH){
+        if(inBoard(target.x+cx, target.y+cy)) cand.push([cx,cy]);
+      }
+      if(!cand.length) continue;
+      const [fx,fy] = cand[0];
+      aiAtkBusy=true; aiAtkCb=null;
+      G.pending={handIdx:idx, cardId:cid};
+      beginCardPlay(cid);
+      onTargetCell(target.x, target.y);
+      onTargetCell(target.x+fx, target.y+fy);
+      return;
+    }
+    const en = orthEnemies(target)[0];
+    if(en){
+      aiAtkBusy=true; aiAtkCb=null;
+      G.pending={handIdx:idx, cardId:cid};
+      beginCardPlay(cid);
+      onTargetCell(target.x, target.y);
+      onTargetCell(en[0], en[1]);
+      return;
+    }
+    if(cid==='huikan'){
+      const d = orthDebris(target)[0];
+      if(!d) continue;
+      G.pending={handIdx:idx, cardId:cid};
+      beginCardPlay(cid);
+      onTargetCell(target.x, target.y);
+      onTargetCell(d[0], d[1]);
+      aiAtkBusy=false; // 拆障碍为同步结算，无闪避环节
+      return;
+    }
+  }
+}
+function aiPlayDefense(){
+  const side=2;
+  const mine=G.pieces.filter(p=>p.side===side&&p.alive);
+  if(!mine.length) return;
+  const defPriority=['hujia','huifu','zhiliao'];
+  for(const cid of defPriority){
+    if(!canPlayCard(cid, side)) continue;
+    const idx = G.hands[side].indexOf(cid);
+    if(idx<0) continue;
+    G.pending={handIdx:idx, cardId:cid};
+    if(cid==='zhiliao'){ playCardNoTarget(cid); return; }
+    const t = mine.find(p=> cid==='hujia' ? p.shields.some(s=>s===0) : p.hp<CFG.PIECE_HP);
+    if(!t) continue;
+    beginCardPlay(cid);
+    onTargetCell(t.x, t.y);
+    return;
+  }
+}
+function aiTurn(){
+  if(G.over || aiBusy) return;
+  if(G.turn!==2 || GAME_MODE!=='ai') return;
+  const gen = aiGen;
+  aiBusy = true;
+  logMsg('【人机】红方回合，思考中…', 'lg-r');
+  const steps = [];
+  G.pieces.filter(p=>p.side===2&&p.alive).forEach(p=>steps.push({t:'move', p}));
+  steps.push({t:'atk'});
+  steps.push({t:'def'});
+  steps.push({t:'end'});
+  aiStep(steps, 0, gen);
+}
+function aiStep(steps, i, gen){
+  if(gen!==aiGen) return;
+  if(G.over){ aiBusy=false; return; }
+  if(i>=steps.length){
+    aiBusy=false;
+    // 防御性清理：任何残留阶段/待选目标都不允许阻挡回合结束
+    G.phase='select'; G.selected=null; G.moveHighlights=null; G.targetCtx=null; G.targetHighlights=null; G.pending=null;
+    renderAll();
+    endTurn();
+    return;
+  }
+  const s = steps[i];
+  setTimeout(()=>{
+    if(gen!==aiGen) return;
+    if(G.over){ aiBusy=false; return; }
+    if(s.t==='move') aiMovePiece(s.p);
+    else if(s.t==='atk'){
+      aiAtkBusy=false; aiAtkCb=null;
+      aiPlayAttack();
+      if(aiAtkBusy){
+        aiResume = ()=>{ aiResume=null; aiStep(steps, i+1, gen); };
+        aiAtkCb = aiResume;
+        return;
+      }
+    }
+    else if(s.t==='def') aiPlayDefense();
+    aiStep(steps, i+1, gen);
+  }, 400);
+}
+
+/* ===== 启动 ===== */
+newGame();
+</script>
+</body>
+</html>
