@@ -1,0 +1,184 @@
+{
+  "src": "C:\\Users\\18353\\DoubaoWork\\chats\\2026-10-17\\new-chat\\棋盘战棋卡牌Demo.html",
+  "url": "file:///C:/Users/18353/DoubaoWork/chats/2026-10-17/new-chat/%E6%A3%8B%E7%9B%98%E6%88%98%E6%A3%8B%E5%8D%A1%E7%89%8CDemo.html",
+  "outdir": "C:\\Users\\18353\\DoubaoWork\\chats\\2026-10-17\\new-chat\\_shots",
+  "include": [
+    "screenshots"
+  ],
+  "shots": {
+    "desktop": {
+      "revealed": 0,
+      "screenshot": "C:\\Users\\18353\\DoubaoWork\\chats\\2026-10-17\\new-chat\\_shots\\棋盘战棋卡牌Demo_desktop.jpg",
+      "screenshotBytes": 20365,
+      "truncated": false
+    }
+  },
+  "engine": "playwright",
+  "chromiumExec": "(playwright default)",
+  "elapsedSec": 17.86,
+  "schemaVersion": 2,
+  "status": "partial",
+  "engineInfo": {
+    "name": "playwright",
+    "degraded": false,
+    "degradedReasons": []
+  },
+  "input": {
+    "original": "C:\\Users\\18353\\DoubaoWork\\chats\\2026-10-17\\new-chat\\棋盘战棋卡牌Demo.html",
+    "resolvedPath": "C:\\Users\\18353\\DoubaoWork\\chats\\2026-10-17\\new-chat\\棋盘战棋卡牌Demo.html",
+    "baseUrl": "file:///C:/Users/18353/DoubaoWork/chats/2026-10-17/new-chat/%E6%A3%8B%E7%9B%98%E6%88%98%E6%A3%8B%E5%8D%A1%E7%89%8CDemo.html",
+    "protocol": "file",
+    "cwd": "C:\\Users\\18353\\DoubaoWork\\chats\\2026-10-17\\new-chat",
+    "mediaMode": {
+      "reducedMotion": true
+    }
+  },
+  "artifacts": {
+    "screenshots": [
+      {
+        "viewport": "desktop",
+        "path": "C:\\Users\\18353\\DoubaoWork\\chats\\2026-10-17\\new-chat\\_shots\\棋盘战棋卡牌Demo_desktop.jpg",
+        "size": 20365,
+        "visualCoverage": {
+          "complete": true,
+          "reason": null
+        }
+      }
+    ]
+  },
+  "summary": {
+    "blocker": 0,
+    "error": 0,
+    "warning": 0,
+    "info": 0
+  },
+  "findings": [],
+  "notRunChecks": [
+    {
+      "ruleId": "consoleErrors",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "consoleWarnings",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "resourceErrors",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "horizontalOverflow",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "misalignedBlocks",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "unevenColumns",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "pseudoOverflow",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "orphanCardsWarning",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "squeezedTableColumns",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "fakeDisclosureBulletsWarning",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "edgeHuggingTextWarning",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "fixedWidthElementsWarning",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "timelineAlignmentIssues",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "timelineBrokenAxis",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "timelineDeadDotStyle",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "chartBadValues",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "chartHtmlInCanvasText",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "responsiveChartIssues",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "duplicateImagesWarning",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "stretchedImages",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "localImageWarnings",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "publishBrokenAssets",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "unsafeHrefRefsWarning",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "slopFontsWarning",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "emojiUsageWarning",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "mobileFontIssues",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "textContrastIssues",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "faviconWarning",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "viewportMetaWarning",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "invisibleAnimationsWarning",
+      "reason": "lint_not_requested"
+    },
+    {
+      "ruleId": "deadButtons",
+      "reason": "lint_not_requested"
+    }
+  ],
+  "prioritizedActions": [],
+  "reportPath": "C:\\Users\\18353\\DoubaoWork\\chats\\2026-10-17\\new-chat\\_shots\\report.json"
+}
